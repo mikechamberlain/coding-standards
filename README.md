@@ -323,8 +323,44 @@ Consider whether DTO is a better name than ViewModel.
 
 ## Architecture
 
-We follow a classic tiered architecture where the data flows Repo <=> Service <=> Controller <=> View Model / DTO.
+- We follow a classic tiered architecture where the data flows Repo <=> Service <=> Controller <=> View Model / DTO.
+- Consider omitting the Service layer if it only serves as a trivial wrapper around the Repository. This reduces boilerplate and accelerates development. Introduce the service layer at a later date once it becomes necessary. (This is controversial. Let's try it and see how it goes.)
+- To isolate the client from changes to the Repository, the ViewModel / DTO layer must never be skipped (ie. do not serialize Repository objects directly to the client).
 
-Consider omitting the Service layer if it only serves as a trivial wrapper around the Repository. This reduces boilerplate and accelerates development. Introduce the service layer at a later date once it becomes necessary. (This is controversial. Let's try it and see how it works.)
+## Parallelism
 
-To isolate the client from changes to the Repository, the ViewModel / DTO layer must never be skipped (ie. do not serialize Repository objects directly to the client).
+- Avoid unbounded CPU intensive parallelism on the web cluster.
+
+### Don't
+
+```c#
+var universe = MultiverseRepo.GetUniverse(42); // this is us
+Parallel.ForEach(
+    universe.Galaxies, 
+    galaxy => Console.WriteLine(galaxy.CountParticles())
+);
+```
+
+### Do
+
+
+```c#
+var universe = MultiverseRepo.GetUniverse(42); // this is us
+Parallel.ForEach(
+    universe.Galaxies, 
+    new ParallelOptions { MaxDegreeOfParallelism = 4 }, // cores
+    galaxy => Console.WriteLine(galaxy.CountQuarks())
+);
+```
+
+- Unbounded parallelism may be desirable for asynchronous IO, where threads are not tied up for lengthy periods:
+
+### Do
+
+```c#
+var pendingNotifications = notificationService.GetPendingNotifications();
+var tasks = pendingNotifications
+    .Select(async n => await notificationService.SendNotification(n))
+    .ToList();
+await Task.WhenAll(tasks);
+```
