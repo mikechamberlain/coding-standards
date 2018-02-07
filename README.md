@@ -188,7 +188,7 @@ public List<int> GetPropertyIds(int hostId)
 {
     var properties = propertyService.GetProperties(hostId);
     
-    if (!properties.Any()) 
+    if (properties == null || !properties.Any()) 
     {
         return null; 
         // NO! Now the caller has to somehow know to deal with this special case.
@@ -196,7 +196,7 @@ public List<int> GetPropertyIds(int hostId)
         // 3am wakeup calls.
     }
     
-    return properties.Select(p => p.Id()).ToList();
+    return properties.Select(p => p.Id).ToList();
 }
 ```
 
@@ -207,10 +207,13 @@ public List<int> GetPropertyIds(int hostId)
 {
     var properties = propertyService.GetProperties(hostId);
     
-    // Just return an empty enumerable and everything should just work.
-    return properties.Select(p => p.Id()).ToList();
+    if (properties == null) 
+    {
+        // Just return an empty List and everything should just work.
+        // Even better: fix propertyService.GetProperties() to not return null itself.
+        return Enumerable.Empty<int>().ToList();
+    }
     
-    // Note that if propertyService.GetProperties() returned null itself,
-    // then *it* should be fixed.
+    return properties.Select(p => p.Id).ToList();
 }
 ```
