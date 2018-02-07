@@ -12,17 +12,17 @@ Systems work best if they are kept simple. Therefore, simplicity should be a key
 
 - Only create an interface for your class if at least one of the following is true:
   1. Multiple implementations exist in application code.
-  2. The service needs to be mocked to make its dependencies testable.
-- A service only needs to be mocked if it is _impure_, eg:
-  - it has a side effects such as making an external call (eg. http)
-  - it is non-deterministic - that is, when called multiple times with the same inputs, a different result may be returned (eg. `DateTime.Now`).
+  2. The service needs to be mocked for testability.
+- A service only needs to be mocked if it is _impure_, ie:
+  - it has a side effect such as making an external call (eg. http)
+  - it is non-deterministic - that is, it may yield different outputs when called multiple times with the same inputs (eg. `DateTime.Now`).
 - An impure service is a good candidate for dependency injection. This promotes testability and keeps components loosely coupled.
-- A pure service doesn't need to be injected. Prefer to create and access it as a static method instead.
+- A pure service doesn't need to be injected. Prefer instead to create and access it as a static method.
 - Keep each component's dependency count to a reasonable level.
-  - Declaring only impure services as dependencies will help.
+  - Declaring only impure services as dependencies helps this.
   - If a component's dependency count is getting out of control, consider refactoring the component into more narrowly focused responsibilities. 
 
-For example, say we have a model that needs to be mapped to a view model:
+Example, say we have a model that needs to be mapped to a view model:
 
 ```c#
 public class MyModel
@@ -39,7 +39,7 @@ public class MyViewModel
 ### Don't
 
 ```c#
-// ugh, so much code...
+// so interface, much dependencies...
 
 interface IViewModelMapper<TFrom, TTo>
 {
@@ -62,6 +62,7 @@ public class MyController
     private MyViewModelMapper mapper;
     private IMyService service;
     
+    // Unnecessarily injecting a pure service.
     public MyService(MyViewModelMapper mapper, IMyService service)
     {
         this.mapper = mapper;
@@ -80,13 +81,11 @@ public class MyController
 
 ```c#
 
-// much simpler
-
 public class MyViewModel
 {
     public int Id { get; set; }
 
-    // this method is pure, doesn't need to be mocked, so just make it static
+    // Pure, doesn't need to be mocked, so just make it static:
     public static MyViewModel From(MyModel model)
     {
         return new MyViewModel
@@ -100,7 +99,7 @@ public class MyController : ApiController
 {
     private IMyService service;
     
-    // we removed an unneccesarry dependency!
+    // We removed an unneccesarry dependency!
     public MyService(IMyService service)
     {
         this.service = service;
@@ -115,8 +114,8 @@ public class MyController : ApiController
 }
 ```
 
-- Do not depend of framework abstractions (think `HttpContext`). They tie your code to a specific environment / implementation.
-- Respect the [Law of Demeter](https://hackernoon.com/object-oriented-tricks-2-law-of-demeter-4ecc9becad85), that is, avoid long chains of accessors such as `var x = a.b().c.d;`. They tightly couple your code to the outside world, making it more difficult to change or test.
+- Do not depend of framework abstractions (like `HttpContext`). They tie your code to a specific environment / implementation. Instead, wrap in an app specific abstraction.
+- Respect the [Law of Demeter](https://hackernoon.com/object-oriented-tricks-2-law-of-demeter-4ecc9becad85), that is, avoid long chains of accessors such as `a.b().c.d`. They tightly couple your code to the outside world, making it more difficult to change or test.
 
 
 ### Don't
@@ -124,13 +123,13 @@ public class MyController : ApiController
 ```c#
 public sealed class CustomerRepository : ICustomerRepository
 {
-    private readonly IUnitOfWork uow;
     private readonly IHttpContextAccessor accessor;
+    private readonly IUnitOfWork uow;
 
-    public CustomerRepository(IUnitOfWork uow, IHttpContextAccessor accessor)
+    public CustomerRepository(IUserContext userContext, IUnitOfWork uow)
     {
+        this.userContext = userContext;
         this.uow = uow;
-        this.accessor = accessor;
     }
 
     public void Save(Customer entity)
@@ -169,13 +168,14 @@ public sealed class AspNetUserContext : IUserContext
 
 public sealed class CustomerRepository : ICustomerRepository
 {
-    private readonly IUnitOfWork uow;
     private readonly IUserContext userContext;
+    private readonly IUnitOfWork uow;
 
-    public CustomerRepository(IUnitOfWork uow, IUserContext userContext)
+    // We configure the container to inject our env-specific abstraction.
+    public CustomerRepository(IUserContext userContext, IUnitOfWork uow)
     {
-        this.uow = uow;
         this.userContext = userContext;
+        this.uow = uow;
     }
 
     public void Save(Customer entity)
@@ -192,8 +192,8 @@ public sealed class CustomerRepository : ICustomerRepository
 
 ## Errors and exceptions
 
-- Fail as quickly and as loudly as possible. This gives us the greatest chance of becoming aware of the problem or bug, meaning we can take steps to fix it. Do not be tempted to hide exceptions from the user simply to "improve" the UX. This just leads to long-term difficult-to-diagnose inconsistencies.
-- Do not _catch_ an exception unless you have a good reason to do so. Such reasons might include one or more of:
+- Fail as quickly and as loudly as possible. This gives us the greatest chance of becoming aware of the problem or bug, increasing the chance it will be fixed. Do not be tempted to hide exceptions from the user simply to "improve" the UX. This just leads to long-term difficult-to-diagnose inconsistencies and weirdness.
+- Do not _catch_ an exception unless you have a good reason to do so. Such reasons might be:
    - recovering from the error
    - enriching the error message / wrapping the exception
    - retrying the operation
@@ -204,7 +204,7 @@ public sealed class CustomerRepository : ICustomerRepository
 - If you cannot recover from an error, it's totally fine!
   - Either: don't catch the exception in the first place.
   - Else: rethrow the exception so it can be handled further up the stack by something that can.
-- There should always be a global exception handler that logs the exception and shows a "sorry, something went wrong" message to the user. If all you want to do is log the error, then don't bother - keep your code clean and let the global exception handler do its thing.
+- There should always be a global exception handler that logs the exception and shows a "sorry, something went wrong" message to the user. If all you want to do is log the error, then don't bother - keep your code clean and leave the logging to the global exception handler.
 - When _rethrowing_ an exception simply `throw;` it. Do not `throw ex;` as this loses the call stack information, making it look like the exception originated inside your `catch` block.
 
 **Note that simply logging the exception does not count as graceful recovery. If in doubt, always rethrow.**
@@ -236,9 +236,9 @@ try
 catch (MyServiceException ex)
 {
     Log.Error(ex.ToString());
-    throw;
+    throw; // note: *NOT* throw ex;
     // This time, the caller is notified that something went wrong, and can take 
-    // steps to recover, else allow the exception to propagate up the stack. 
+    // steps to recover, or allow the exception to propagate up the stack. 
 }
 
 ```
@@ -258,7 +258,7 @@ Avoid nulls where possible, because they:
 
 Consider using an Option/Maybe type to represent the potential absence of a value. 
 
-[Read more here (seriously)](https://www.lucidchart.com/techblog/2015/08/31/the-worst-mistake-of-computer-science/).
+[Read more here (seriously, do it!)](https://www.lucidchart.com/techblog/2015/08/31/the-worst-mistake-of-computer-science/).
 
 ### Don't
 
@@ -290,6 +290,7 @@ public List<int> GetPropertyIds(int hostId)
     {
         // Just return an empty List and everything should just work.
         return Enumerable.Empty<int>().ToList();
+        
         // Even better: fix propertyService.GetProperties() to not return null itself,
         // and this whole block can be removed.
     }
@@ -323,9 +324,9 @@ Consider whether DTO is a better name than ViewModel.
 
 ## Architecture
 
-- We follow a classic tiered architecture where the data flows Repo <=> Service <=> Controller <=> View Model / DTO.
-- Consider omitting the Service layer if it only serves as a trivial wrapper around the Repository. This reduces boilerplate and accelerates development. Introduce the service layer at a later date once it becomes necessary. (This is controversial. Let's try it and see how it goes.)
-- To isolate the client from changes to the Repository, and to prevent potentially sensitive fields from being inadvertently exposed, the ViewModel / DTO layer must never be skipped (ie. do not serialize Repository objects directly to the client).
+- We follow a tiered architecture where the data flows Repo <=> Service <=> Controller <=> View Model / DTO.
+- Consider omitting the Service layer if it only serves as a trivial wrapper around the Repository. This reduces boilerplate and accelerates development. Yes, this means your controller can call a repository directly. Introduce the Service layer at a later date only once it becomes necessary. (This is controversial. Let's try it and see what happens.)
+- The ViewModel / DTO layer must never be skipped (ie. do not serialize Repository objects directly to the client). This isolates the client from changes to the Repository, and prevents new and potentially sensitive fields from being inadvertently exposed. 
 
 ## Parallelism
 
@@ -334,10 +335,10 @@ Consider whether DTO is a better name than ViewModel.
 ### Don't
 
 ```c#
-var universe = MultiverseRepo.GetUniverseById(42); // this is us
+var universe = MultiverseRepo.GetUniverseById(42); // this one is us
 Parallel.ForEach(
     universe.Galaxies, 
-    // goodbye web cluster
+    // goodbye web server
     galaxy => Console.WriteLine(galaxy.CountParticles())
 );
 ```
