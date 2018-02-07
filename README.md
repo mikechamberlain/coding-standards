@@ -8,7 +8,7 @@ _Keep It Simple, Stupid_
 
 Systems work best if they are kept simple. Therefore, simplicity should be a key goal in design, and unnecessary complexity should be avoided.
 
-## Services, interfaces and DI
+## Services, interfaces and dependencies
 
 - Only create an interface for your class if at least one of the following is true:
   1. Multiple implementations exist in application code.
@@ -80,7 +80,7 @@ public class MyController
 
 ```c#
 
-// so much simpler
+// much simpler
 
 public class MyViewModel
 {
@@ -111,6 +111,81 @@ public class MyController : ApiController
         var model = service.GetModel();
         var viewModel = MyViewModel.From(model);
         return Json(viewModel);
+    }
+}
+```
+
+- Do not depend of framework abstractions (think `HttpContext`). They tie your code to a specific environment / implementation.
+- Respect the [Law of Demeter](https://hackernoon.com/object-oriented-tricks-2-law-of-demeter-4ecc9becad85), that is, avoid long chains of accessors such as `var x = a.b().c.d;`. They tightly couple your code to the outside world, making it more difficult to change or test.
+
+
+### Don't
+
+```c#
+public sealed class CustomerRepository : ICustomerRepository
+{
+    private readonly IUnitOfWork uow;
+    private readonly IHttpContextAccessor accessor;
+
+    public CustomerRepository(IUnitOfWork uow, IHttpContextAccessor accessor)
+    {
+        this.uow = uow;
+        this.accessor = accessor;
+    }
+
+    public void Save(Customer entity)
+    {
+        // Not only have we tied ourself to the ASP.NET Core MVC environment,
+        // but our class becomes annoying to test as we have to mock this
+        // long chain of objects:
+        entity.CreatedBy = this.accessor.HttpContext.User.Identity.Name;
+        this.uow.Save(entity);
+    }
+}
+```
+
+### Do
+
+```c#
+// Create a non-framework specific abstraction that gives us only what we need.
+public interface IUserContext
+{
+    string Name { get; }
+}
+
+// Provide and register an environment specific implementation that encapsulates 
+// all the messy details.
+public sealed class AspNetUserContext : IUserContext
+{   
+    private readonly IHttpContextAccessor accessor;
+    
+    public AspNetUserContext(IHttpContextAccessor accessor) 
+    { 
+        this.accessor = accessor; 
+    }
+    
+    public string Name => accessor.HttpContext.Context.User.Identity.Name;
+}
+
+public sealed class CustomerRepository : ICustomerRepository
+{
+    private readonly IUnitOfWork uow;
+    private readonly IUserContext userContext;
+
+    public CustomerRepository(IUnitOfWork uow, IUserContext userContext)
+    {
+        this.uow = uow;
+        this.userContext = userContext;
+    }
+
+    public void Save(Customer entity)
+    {
+        // Here, we've isolate ourselves from the underlying framework, allowing our
+        // code to also run in a Windows service, a console application, etc.
+        // Further, we've eliminated the trainwreck above, making our class much more
+        // straightforward to test.
+        entity.CreatedBy = userContext.Name;
+        uow.Save(entity);
     }
 }
 ```
@@ -250,6 +325,6 @@ Consider whether DTO is a better name than ViewModel.
 
 We follow a classic tiered architecture where the data flows Repo <=> Service <=> Controller <=> View Model / DTO.
 
-Consider omitting the Service layer if it only serves as a trivial wrapper around the Repository. This reduces boilerplate and accelerates development. Introduce the service layer at a later date once it becomes necessary. (Controversial. Let's try it and see what happens.)
+Consider omitting the Service layer if it only serves as a trivial wrapper around the Repository. This reduces boilerplate and accelerates development. Introduce the service layer at a later date once it becomes necessary. (This is controversial. Let's try it and see how it works.)
 
 To isolate the client from changes to the Repository, the ViewModel / DTO layer must never be skipped (ie. do not serialize Repository objects directly to the client).
