@@ -8,6 +8,35 @@ _Keep It Simple, Stupid_
 
 Systems work best if they are kept simple. Therefore, simplicity should be a key goal in design, and unnecessary complexity should be avoided.
 
+## Folder structure
+
+_Organize primarily by what it does, not what it is._
+
+```
++- MyProject
+   +- Functional Area 1 (eg. Geography)
+      +- Controllers
+      +- Repositories
+      +- Services
+      +- ViewModels
+   +- Functional Area 2 (eg. Search)
+      +- Controllers
+      +- Repositories
+      +- Services
+      +- ViewModels
+   etc.
+```
+
+Consider splitting functional areas into subfolders as/when they grow.
+
+Consider whether DTO is a better name than ViewModel.
+
+## Architecture
+
+- We follow a tiered architecture where the data flows Repo <=> Service <=> Controller <=> View Model / DTO.
+- Consider omitting the Service layer if it only serves as a trivial wrapper around the Repository. This reduces boilerplate and accelerates development. Yes, this means your controller can call a repository directly. Introduce the Service layer at a later date only once it becomes necessary. (This is controversial. Let's try it and see what happens?)
+- The ViewModel / DTO layer must never be skipped (ie. do not serialize Repository objects directly to the client). This isolates the client from changes to the Repository, and prevents new and potentially sensitive fields from being inadvertently exposed. 
+
 ## Services, interfaces and dependencies
 
 - Only create an interface for your class if at least one of the following is true:
@@ -299,35 +328,6 @@ public List<int> GetPropertyIds(int hostId)
     return properties.Select(p => p.Id).ToList();
 }
 ```
-
-## Folder structure
-
-_Organize primarily by what it does, not what it is._
-
-```
-+- MyProject
-   +- Functional Area 1 (eg. Geography)
-      +- Controllers
-      +- Repositories
-      +- Services
-      +- ViewModels
-   +- Functional Area 2 (eg. Search)
-      +- Controllers
-      +- Repositories
-      +- Services
-      +- ViewModels
-   etc.
-```
-
-Consider splitting functional areas into subfolders as/when they grow.
-
-Consider whether DTO is a better name than ViewModel.
-
-## Architecture
-
-- We follow a tiered architecture where the data flows Repo <=> Service <=> Controller <=> View Model / DTO.
-- Consider omitting the Service layer if it only serves as a trivial wrapper around the Repository. This reduces boilerplate and accelerates development. Yes, this means your controller can call a repository directly. Introduce the Service layer at a later date only once it becomes necessary. (This is controversial. Let's try it and see what happens?)
-- The ViewModel / DTO layer must never be skipped (ie. do not serialize Repository objects directly to the client). This isolates the client from changes to the Repository, and prevents new and potentially sensitive fields from being inadvertently exposed. 
 
 ## Parallelism
 
