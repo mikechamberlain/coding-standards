@@ -186,7 +186,7 @@ Consider using an Option/Maybe type to represent the potential absence of a valu
 ```c#
 public List<int> GetPropertyIds(int hostId)
 {
-    var properties = propertyService.GetProperties(hostId);
+    var properties = propertyService.GetPropertiesForHost(hostId);
     
     if (properties == null || !properties.Any()) 
     {
@@ -205,13 +205,14 @@ public List<int> GetPropertyIds(int hostId)
 ```c#
 public List<int> GetPropertyIds(int hostId)
 {
-    var properties = propertyService.GetProperties(hostId);
+    var properties = propertyService.GetPropertiesForHost(hostId);
     
     if (properties == null) 
     {
         // Just return an empty List and everything should just work.
-        // Even better: fix propertyService.GetProperties() to not return null itself.
         return Enumerable.Empty<int>().ToList();
+        // Even better: fix propertyService.GetProperties() to not return null itself,
+        // and this whole block can be removed.
     }
     
     return properties.Select(p => p.Id).ToList();
