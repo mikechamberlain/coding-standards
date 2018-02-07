@@ -22,7 +22,7 @@ Systems work best if they are kept simple. Therefore, simplicity should be a key
   - Declaring only impure services as dependencies helps this.
   - If a component's dependency count is getting out of control, consider refactoring the component into more narrowly focused responsibilities. 
 
-Example, say we have a model that needs to be mapped to a view model:
+Example: say we have a model that needs to be mapped to a view model:
 
 ```c#
 public class MyModel
@@ -46,7 +46,7 @@ interface IViewModelMapper<TFrom, TTo>
     TTo Map(TFrom from);
 }
 
-public class MyViewModelMapper : IViewModelMapper<MyModel, MyViewMOdel>
+public class MyViewModelMapper : IViewModelMapper<MyModel, MyViewModel>
 {
     public MyViewModel Map(MyModel model)
     {
@@ -80,12 +80,13 @@ public class MyController
 ### Do
 
 ```c#
+// KISS
 
 public class MyViewModel
 {
     public int Id { get; set; }
 
-    // Pure, doesn't need to be mocked, so just make it static:
+    // Method is pure, doesn't need to be mocked, so just make it static:
     public static MyViewModel From(MyModel model)
     {
         return new MyViewModel
@@ -99,7 +100,7 @@ public class MyController : ApiController
 {
     private IMyService service;
     
-    // We removed an unneccesarry dependency!
+    // We removed an unnecessary dependency!
     public MyService(IMyService service)
     {
         this.service = service;
@@ -115,7 +116,7 @@ public class MyController : ApiController
 ```
 
 - Do not depend of framework abstractions (like `HttpContext`). They tie your code to a specific environment / implementation. Instead, wrap in an app specific abstraction.
-- Respect the [Law of Demeter](https://hackernoon.com/object-oriented-tricks-2-law-of-demeter-4ecc9becad85), that is, avoid long chains of accessors such as `a.b().c.d`. They tightly couple your code to the outside world, making it more difficult to change or test.
+- Respect the [Law (Suggestion) of Demeter](https://hackernoon.com/object-oriented-tricks-2-law-of-demeter-4ecc9becad85), that is, avoid long chains of accessors such as `a.b().c.d`. They tightly couple your code to the outside world, making it more difficult to change or test.
 
 
 ### Don't
@@ -325,7 +326,7 @@ Consider whether DTO is a better name than ViewModel.
 ## Architecture
 
 - We follow a tiered architecture where the data flows Repo <=> Service <=> Controller <=> View Model / DTO.
-- Consider omitting the Service layer if it only serves as a trivial wrapper around the Repository. This reduces boilerplate and accelerates development. Yes, this means your controller can call a repository directly. Introduce the Service layer at a later date only once it becomes necessary. (This is controversial. Let's try it and see what happens.)
+- Consider omitting the Service layer if it only serves as a trivial wrapper around the Repository. This reduces boilerplate and accelerates development. Yes, this means your controller can call a repository directly. Introduce the Service layer at a later date only once it becomes necessary. (This is controversial. Let's try it and see what happens?)
 - The ViewModel / DTO layer must never be skipped (ie. do not serialize Repository objects directly to the client). This isolates the client from changes to the Repository, and prevents new and potentially sensitive fields from being inadvertently exposed. 
 
 ## Parallelism
