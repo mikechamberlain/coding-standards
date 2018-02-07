@@ -1,5 +1,7 @@
 These are the C# coding standards and practices for new (non-legacy) code. This is a living document. Please discuss on #coding-standards and send a pull request if you would like to contribute.
 
+TODO: this is currently a brain dump, and needs to be better organized. 
+
 ## Overall philosophy: KISS
 
 _Keep It Simple, Stupid_
@@ -13,7 +15,7 @@ Systems work best if they are kept simple. Therefore, simplicity should be a key
   2. The service needs to be mocked to make its dependencies testable.
 - A service only needs to be mocked if it is _impure_, eg:
   - it has a side effects such as making an external call (eg. http)
-  - it is non-deterministic - that is, when called multiple times with the same input, different results may be returned (eg. `DateTime.Now`).
+  - it is non-deterministic - that is, when called multiple times with the same inputs, a different result may be returned (eg. `DateTime.Now`).
 - An impure service is a good candidate for dependency injection. This promotes testability and keeps components loosely coupled.
 - A pure service doesn't need to be injected. Prefer to create and access it as a static method instead.
 - Keep each component's dependency count to a reasonable level.
@@ -82,6 +84,8 @@ public class MyController
 
 public class MyViewModel
 {
+    public int Id { get; set; }
+
     // this method is pure, doesn't need to be mocked, so just make it static
     public static MyViewModel From(MyModel model)
     {
@@ -218,3 +222,34 @@ public List<int> GetPropertyIds(int hostId)
     return properties.Select(p => p.Id).ToList();
 }
 ```
+
+## Folder structure
+
+_Organize primarily by what it does, not what it is._
+
+```
++- MyProject
+   +- Functional Area 1 (eg. Geography)
+      +- Controllers
+      +- Repositories
+      +- Services
+      +- ViewModels
+   +- Functional Area 2 (eg. Search)
+      +- Controllers
+      +- Repositories
+      +- Services
+      +- ViewModels
+   etc.
+```
+
+Consider splitting functional areas into subfolders as/when they grow.
+
+Consider whether DTO is a better name than ViewModel.
+
+## Architecture
+
+We follow a classic tiered architecture where the data flows Repo <=> Service <=> Controller <=> View Model / DTO.
+
+Consider omitting the Service layer if it only serves as a trivial wrapper around the Repository. This reduces boilerplate and accelerates development. Introduce the service layer at a later date once it becomes necessary. (Controversial. Let's try it and see what happens.)
+
+To isolate the client from changes to the Repository, the ViewModel / DTO layer must never be skipped (ie. do not serialize Repository objects directly to the client).
