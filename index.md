@@ -9,9 +9,9 @@ Systems work best if they are kept simple. Therefore, simplicity should be a key
 ## Exceptions
 
 - Fail as quickly and as loudly as possible. This gives us the greatest chance of becoming aware of the problem or bug, meaning we can take steps to fix it. Do not be tempted to hide exceptions from the user simply to "improve" the UX. This just leads to long-term difficult-to-diagnose inconsistencies.
-- Do not _catch_ an exception unless you have a good reason to do so. Such reasons might include:
+- Do not _catch_ an exception unless you have a good reason to do so. Such reasons might include one or more of:
    - recovering from the error
-   - enriching the error message
+   - enriching the error message / wrapping the exception
    - retrying the operation
    - logging the error
 - When catching an exception, be as specific as possible to the type of exception you are handling. Avoid catching `System.Exception` if you only plan to handle `System.IO.FileNotFoundException`. 
@@ -25,7 +25,7 @@ Systems work best if they are kept simple. Therefore, simplicity should be a key
 
 **Note that simply logging the exception does not usually count as gracefully recovering. If in doubt, always rethrow.**
 
-### Bad
+### Don't
 
 ```c#
 try
@@ -42,7 +42,7 @@ catch (Exception ex)
 
 ```
 
-### Good
+### Do
 
 ```c#
 try
