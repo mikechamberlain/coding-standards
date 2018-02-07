@@ -96,6 +96,7 @@ public class MyController : ApiController
 {
     private IMyService service;
     
+    // we removed an unneccesarry dependency!
     public MyService(IMyService service)
     {
         this.service = service;
@@ -161,4 +162,55 @@ catch (MyServiceException ex)
     // steps to recover, else allow the exception to propagate up the stack. 
 }
 
+```
+
+## nulls
+
+_"The billion dollar mistake"_
+
+Avoid nulls where possible, because they:
+- subvert types
+- are sloppy
+- present a special case
+- make poor APIs
+- exacerbate poor language decisions
+- are difficult to debug
+- are non-composable
+
+Consider using an Option/Maybe type to represent the potential absence of a value. 
+
+[Read more here (seriously)](https://www.lucidchart.com/techblog/2015/08/31/the-worst-mistake-of-computer-science/).
+
+### Don't
+
+```c#
+public List<int> GetPropertyIds(int hostId)
+{
+    var properties = propertyService.GetProperties(hostId);
+    
+    if (!properties.Any()) 
+    {
+        return null; 
+        // NO! Now the caller has to somehow know to deal with this special case.
+        // You are asking for a NullReferenceException in prod. Hope you like 
+        // 3am wakeup calls.
+    }
+    
+    return properties.Select(p => p.Id()).ToList();
+}
+```
+
+### Do
+
+```c#
+public List<int> GetPropertyIds(int hostId)
+{
+    var properties = propertyService.GetProperties(hostId);
+    
+    // Just return an empty enumerable and everything should just work.
+    return properties.Select(p => p.Id()).ToList();
+    
+    // Note that if propertyService.GetProperties() returned null itself,
+    // then *it* should be fixed.
+}
 ```
