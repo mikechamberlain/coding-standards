@@ -201,12 +201,12 @@ public sealed class CustomerRepository : ICustomerRepository
    - logging the error
 - When catching an exception, be as specific as possible to the type of exception you are handling. Avoid catching `System.Exception` if you only plan to handle `System.IO.FileNotFoundException`. 
 - Do not _swallow_ an exception unless you have handled the error and can gracefully continue. The hardest exceptions to troubleshoot are the ones that don't even exist, because someone upstream decided to swallow it.
-- Only swallow an exception if you have taken steps to correct the problem and have brought the system back into a consistent state. For example, if an exception is thrown when writing to a readonly file then you can recover by removing the readonly attribute.
-- If you cannot recover from an error, it's totally fine!
+- Only swallow an exception if you have taken steps to correct the problem and have brought the system back into a consistent state. For example, if an exception is thrown when writing to a readonly file then you can recover by removing the readonly attribute, swallowing the exception, then retrying.
+- If you cannot recover from an exception, it's totally fine!
   - Either: don't catch the exception in the first place.
   - Else: rethrow the exception so it can be handled further up the stack by something that can.
-- There should always be a global exception handler that logs the exception and shows a "sorry, something went wrong" message to the user. If all you want to do is log the error, then don't bother - keep your code clean and leave the logging to the global exception handler.
-- When _rethrowing_ an exception simply `throw;` it. Do not `throw ex;` as this loses the call stack information, making it look like the exception originated inside your `catch` block.
+- There should always be a global exception handler that logs any unhandled exceptions and shows a "sorry, something went wrong" message to the user. If all you want to do is log the error, then don't bother - keep your code clean and leave the logging to the global exception handler.
+- When _rethrowing_ an exception simply `throw;` it. Do not `throw ex;` as this loses the original call stack information, making it look like the exception originated inside your `catch` block.
 
 **Note that simply logging the exception does not count as graceful recovery. If in doubt, always rethrow.**
 
