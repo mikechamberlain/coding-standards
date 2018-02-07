@@ -352,7 +352,7 @@ var universe = MultiverseRepo.GetUniverseById(42);
 Parallel.ForEach(
     universe.Galaxies, 
     new ParallelOptions { MaxDegreeOfParallelism = 4 }, // cores
-    galaxy => Console.WriteLine(galaxy.CountQuarks())
+    galaxy => Console.WriteLine(galaxy.CountParticles())
 );
 ```
 
