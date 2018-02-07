@@ -272,7 +272,7 @@ public List<int> GetPropertyIds(int hostId)
         return null; 
         // NO! Now the caller has to somehow know to deal with this special case.
         // You are asking for a NullReferenceException in prod. Hope you like 
-        // 3am wakeup calls.
+        // 3am wakeup calls!
     }
     
     return properties.Select(p => p.Id).ToList();
@@ -337,6 +337,7 @@ Consider whether DTO is a better name than ViewModel.
 var universe = MultiverseRepo.GetUniverse(42); // this is us
 Parallel.ForEach(
     universe.Galaxies, 
+    // goodbye web cluster
     galaxy => Console.WriteLine(galaxy.CountParticles())
 );
 ```
