@@ -6,7 +6,111 @@ _Keep It Simple, Stupid_
 
 Systems work best if they are kept simple. Therefore, simplicity should be a key goal in design, and unnecessary complexity should be avoided.
 
-## Exceptions
+## Services, interfaces and DI
+
+- Only create an interface for your class if at least one of the following is true:
+  1. Multiple implementations exist in application code.
+  2. The service needs to be mocked to make its dependencies testable.
+- A service only needs to be mocked if it is _impure_, eg:
+  - it has a side effects such as making an external call (eg. http)
+  - it is non-deterministic - that is, when called multiple times with the same input, different results may be returned (eg. `DateTime.Now`).
+- An impure service is a good candidate for dependency injection. This promotes testability and keeps components loosely coupled.
+- A pure service doesn't need to be injected. Prefer to create and access it as a static method instead.
+- Keep each component's dependency count to a reasonable level.
+  - Declaring only impure services as dependencies will help.
+  - If a component's dependency count is getting out of control, consider refactoring the component into more narrowly focused responsibilities. 
+
+For example, say we have a model that needs to be mapped to a view model:
+
+```c#
+public class MyModel
+{
+    public int Id { get; set; }
+}
+
+public class MyViewModel
+{
+    public int Id { get; set; }
+}
+```
+
+### Don't
+
+```c#
+// ugh, so much code...
+
+interface IViewModelMapper<TFrom, TTo>
+{
+    TTo Map(TFrom from);
+}
+
+public class MyViewModelMapper : IViewModelMapper<MyModel, MyViewMOdel>
+{
+    public MyViewModel Map(MyModel model)
+    {
+        return new MyViewModel
+        {
+            Id = model.Id
+        };
+    }
+}
+
+public class MyController
+{
+    private MyViewModelMapper mapper;
+    private IMyService service;
+    
+    public MyService(MyViewModelMapper mapper, IMyService service)
+    {
+        this.mapper = mapper;
+        this.service = service;
+    }
+    
+    public MyViewModel Get()
+    {
+        var model = service.GetModel();
+        var viewModel = mapper.Map(model);
+        return Json(viewModel);
+    }
+```
+
+### Do
+
+```c#
+
+// so much simpler
+
+public class MyViewModel
+{
+    // this method is pure, doesn't need to be mocked, so just make it static
+    public static MyViewModel From(MyModel model)
+    {
+        return new MyViewModel
+        {
+            Id = model.Id
+        };
+    }      
+}
+
+public class MyController : ApiController
+{
+    private IMyService service;
+    
+    public MyService(IMyService service)
+    {
+        this.service = service;
+    }
+    
+    public MyViewModel Get()
+    {
+        var model = service.GetModel();
+        var viewModel = MyViewModel.From(model);
+        return Json(viewModel);
+    }
+}
+```
+
+## Errors and exceptions
 
 - Fail as quickly and as loudly as possible. This gives us the greatest chance of becoming aware of the problem or bug, meaning we can take steps to fix it. Do not be tempted to hide exceptions from the user simply to "improve" the UX. This just leads to long-term difficult-to-diagnose inconsistencies.
 - Do not _catch_ an exception unless you have a good reason to do so. Such reasons might include one or more of:
@@ -18,12 +122,12 @@ Systems work best if they are kept simple. Therefore, simplicity should be a key
 - Do not _swallow_ an exception unless you have handled the error and can gracefully continue. The hardest exceptions to troubleshoot are the ones that don't even exist, because someone upstream decided to swallow it.
 - Only swallow an exception if you have taken steps to correct the problem and have brought the system back into a consistent state. For example, if an exception is thrown when writing to a readonly file then you can recover by removing the readonly attribute.
 - If you cannot recover from an error, it's totally fine!
-  - Either: don't `catch` the exception in the first place.
+  - Either: don't catch the exception in the first place.
   - Else: rethrow the exception so it can be handled further up the stack by something that can.
 - There should always be a global exception handler that logs the exception and shows a "sorry, something went wrong" message to the user. If all you want to do is log the error, then don't bother - keep your code clean and let the global exception handler do its thing.
 - When _rethrowing_ an exception simply `throw;` it. Do not `throw ex;` as this loses the call stack information, making it look like the exception originated inside your `catch` block.
 
-**Note that simply logging the exception does not usually count as gracefully recovering. If in doubt, always rethrow.**
+**Note that simply logging the exception does not count as graceful recovery. If in doubt, always rethrow.**
 
 ### Don't
 
