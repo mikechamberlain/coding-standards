@@ -325,7 +325,7 @@ Consider whether DTO is a better name than ViewModel.
 
 - We follow a classic tiered architecture where the data flows Repo <=> Service <=> Controller <=> View Model / DTO.
 - Consider omitting the Service layer if it only serves as a trivial wrapper around the Repository. This reduces boilerplate and accelerates development. Introduce the service layer at a later date once it becomes necessary. (This is controversial. Let's try it and see how it goes.)
-- To isolate the client from changes to the Repository, the ViewModel / DTO layer must never be skipped (ie. do not serialize Repository objects directly to the client).
+- To isolate the client from changes to the Repository, and to prevent potentially sensitive fields from being inadvertently exposed, the ViewModel / DTO layer must never be skipped (ie. do not serialize Repository objects directly to the client).
 
 ## Parallelism
 
@@ -334,7 +334,7 @@ Consider whether DTO is a better name than ViewModel.
 ### Don't
 
 ```c#
-var universe = MultiverseRepo.GetUniverse(42); // this is us
+var universe = MultiverseRepo.GetUniverseById(42); // this is us
 Parallel.ForEach(
     universe.Galaxies, 
     // goodbye web cluster
@@ -346,7 +346,7 @@ Parallel.ForEach(
 
 
 ```c#
-var universe = MultiverseRepo.GetUniverse(42); // this is us
+var universe = MultiverseRepo.GetUniverseById(42);
 Parallel.ForEach(
     universe.Galaxies, 
     new ParallelOptions { MaxDegreeOfParallelism = 4 }, // cores
@@ -359,9 +359,8 @@ Parallel.ForEach(
 ### Do
 
 ```c#
-var pendingNotifications = notificationService.GetPendingNotifications();
-var tasks = pendingNotifications
-    .Select(async n => await notificationService.SendNotification(n))
-    .ToList();
+var tasks = notificationService
+    .GetPendingNotifications()
+    .Select(async n => await notificationService.SendNotification(n));
 await Task.WhenAll(tasks);
 ```
