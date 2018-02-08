@@ -268,7 +268,7 @@ _Don't. Unless you know what you are doing. But even then, probably don't._
     - Either: pretend to the user that nothing happened? I guess we could present them with a confusing or inconsistent view, with a bunch of fields blanked out?
     - Or: is it better to be explicit: "Really sorry, but something went wrong. Please try again later."
 - We admittedly trade off development resources against the likelihood of an error occurring. But, if the system is down for you, it's also down for the rest of the business.
-    - CAPI is down for your page and you can't retrieve the user's points balance. But more importantly, we also can't take any bookings AT ALL. To the business, exactly how much effort is it worth your page gracefully handling this case, when we are already dead in the water and losing hella-dollars per minute?
+    - CAPI is down for your page and you can't retrieve the user's points balance. But more importantly, we also can't take any bookings AT ALL. So for the business, exactly how much effort is it worth your code gracefully handling this case, when we're already dead in the water, and losing hella-dollars per minute?
 
 ### Rethrowing exceptions
 
@@ -277,7 +277,7 @@ _It's not your problem._
 - If you cannot recover from an exception, _it's totally fine_! Exceptions should be, by nature, _exceptional_, so as a programmer you can't be expected to mitigate for every potential corner case. Someone forgot to deploy the config file? The network went down? The datacenter was destroyed by a hurricane? Christopher Hitchens rose again? It's not your problem.
   - Either: don't catch the exception in the first place.
   - Else: catch, handle (log?) and _rethrow_.
-  - Finally: give someone further up the call stack with more knowledge the chance to handle it more appropriately.
+  - Finally: give someone further up the callstack the chance to handle it more appropriately.
 - When _rethrowing_ an exception simply `throw;` it. Do not `throw ex;` as this loses the original call stack information, making it look like the exception originated inside your `catch` block.
 - **Note that simply logging an exception does not count as graceful recovery. If in doubt, always rethrow.**
 
@@ -320,17 +320,13 @@ catch (MyServiceException ex)
 _"The billion dollar mistake"_
 
 Avoid nulls where possible, because they:
-- subvert types
-- are sloppy
-- present a special case
-- make poor APIs
-- exacerbate poor language decisions
-- are difficult to debug
-- are non-composable
+
+- DO BAD SHIT. 
+
+[Read more here (seriously, do it!)](https://www.lucidchart.com/techblog/2015/08/31/the-worst-mistake-of-computer-science/)
 
 Consider using an Option/Maybe type to represent the potential absence of a value. 
 
-[Read more here (seriously, do it!)](https://www.lucidchart.com/techblog/2015/08/31/the-worst-mistake-of-computer-science/)
 
 #### Don't
 
