@@ -43,15 +43,15 @@ Consider whether DTO is a better name than ViewModel.
   1. Multiple implementations exist in application code.
   2. The service needs to be mocked for testability.
 - A service only needs to be mocked if it is _impure_, ie:
-  - it has a side effect such as making an external call (eg. http)
+  - it has a side effect such as making an external call (eg. reading from disk, making an HTTP call)
   - it is non-deterministic - that is, it may yield different outputs when called multiple times with the same inputs (eg. `DateTime.Now`).
 - An impure service is a good candidate for dependency injection. This promotes testability and keeps components loosely coupled.
-- A pure service doesn't need to be injected. Prefer instead to create and access it as a static method.
+- A pure service doesn't need to be mocked, swapped out, or injected. Prefer instead to create and access it as a static method.
 - Keep each component's dependency count to a reasonable level.
   - Declaring only impure services as dependencies helps this.
   - If a component's dependency count is getting out of control, consider refactoring the component into more narrowly focused responsibilities. 
 
-Example: say we have a model that needs to be mapped to a view model:
+Example. Say we have a model that needs to be mapped to a view model:
 
 ```c#
 public class MyModel
@@ -61,7 +61,7 @@ public class MyModel
 
 public class MyViewModel
 {
-    public int Id { get; set; }
+    public int ModelId { get; set; }
 }
 ```
 
@@ -81,7 +81,7 @@ public class MyViewModelMapper : IViewModelMapper<MyModel, MyViewModel>
     {
         return new MyViewModel
         {
-            Id = model.Id
+            ModelId = model.Id
         };
     }
 }
@@ -120,7 +120,7 @@ public class MyViewModel
     {
         return new MyViewModel
         {
-            Id = model.Id
+            ModelId = model.Id
         };
     }      
 }
@@ -145,7 +145,7 @@ public class MyController : ApiController
 ```
 
 - Do not depend of framework abstractions (like `HttpContext`). They tie your code to a specific environment / implementation. Instead, wrap in an app specific abstraction.
-- Respect the [Law (Suggestion) of Demeter](https://hackernoon.com/object-oriented-tricks-2-law-of-demeter-4ecc9becad85), that is, avoid long chains of accessors such as `a.b().c.d`. They tightly couple your code to the outside world, making it more difficult to change or test.
+- Consider the [Law (Suggestion) of Demeter](https://hackernoon.com/object-oriented-tricks-2-law-of-demeter-4ecc9becad85), that is, avoid long chains of accessors such as `a.b().c.d`. They tightly couple your code to the outside world, making it more difficult to change or test.
 
 
 ### Don't
@@ -336,7 +336,7 @@ public List<int> GetPropertyIds(int hostId)
 ### Don't
 
 ```c#
-var universe = MultiverseRepo.GetUniverseById(42); // this one is us
+var universe = multiverseService.GetUniverseById(42); // this one is us
 Parallel.ForEach(
     universe.Galaxies, 
     // goodbye web server
@@ -348,7 +348,7 @@ Parallel.ForEach(
 
 
 ```c#
-var universe = MultiverseRepo.GetUniverseById(42);
+var universe = multiverseService.GetUniverseById(42);
 Parallel.ForEach(
     universe.Galaxies, 
     new ParallelOptions { MaxDegreeOfParallelism = 4 }, // cores
