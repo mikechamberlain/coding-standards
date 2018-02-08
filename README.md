@@ -274,7 +274,7 @@ _Don't. Unless you know what you are doing. But even then, probably don't._
 
 _It's not your problem._
 
-- If you cannot recover from an exception, _it's totally fine_! Exceptions should be, by nature, _exceptional_, so as a programmer you can't be expected to mitigate for every potential corner case. Someone forgot to deploy the config file? The network went down? The datacenter was destroyed by a hurricane? Christopher Hitchens rose again? It's not your problem.
+- If you cannot recover from an exception, _it's totally fine_! Exceptions should be, by nature, _exceptional_, so as a programmer you can't be expected to mitigate every potential corner case. Someone forgot to deploy the config file? The network went down? The datacenter was destroyed by a hurricane? Christopher Hitchens rose again? _It's not your problem._
   - Either: don't catch the exception in the first place.
   - Else: catch, handle (log?) and _rethrow_.
   - Finally: give someone further up the callstack the chance to handle it more appropriately.
@@ -292,8 +292,8 @@ catch (Exception ex)
 {
     Log.Error(ex.ToString());
     return null;
-    // Now the caller has to deal with a myserious null value, with no indication 
-    // that something went wrong.
+    // Now the caller has to deal with a myserious null value, with no 
+    // indication that something went wrong.
 }
 
 ```
@@ -315,15 +315,21 @@ catch (MyServiceException ex)
 
 ```
 
+#### Even better
+
+```c#
+// Leave any exception to the global exception handler.
+return myService.GetData();
+````
+    
 ## nulls
 
 _"The billion dollar mistake"_
 
 Avoid nulls where possible, because they:
 
-- DO BAD SHIT. 
-
-[Read more here (seriously, do it!)](https://www.lucidchart.com/techblog/2015/08/31/the-worst-mistake-of-computer-science/)
+- DO BAD SHIT 
+- And also [much better reasons](https://www.lucidchart.com/techblog/2015/08/31/the-worst-mistake-of-computer-science/) (seriously, read it!)
 
 Consider using an Option/Maybe type to represent the potential absence of a value. 
 
@@ -358,12 +364,23 @@ public List<int> GetPropertyIds(int hostId)
     {
         // Just return an empty List and everything should just work.
         return Enumerable.Empty<int>().ToList();
-        
-        // EVEN BETTER: fix propertyService.GetProperties() to not return null itself,
-        // and this whole block can be removed.
     }
     
     return properties.Select(p => p.Id).ToList();
+}
+```
+
+#### Even better
+
+```c#
+public List<int> GetPropertyIds(int hostId)
+{
+    // Fix propertyService.GetProperties() to never return null itself, and the
+    // code becomes even more elegant, BAM!
+    var properties = propertyService
+        .GetPropertiesForHost(hostId)
+        .Select(p => p.Id)
+        .ToList();
 }
 ```
 
