@@ -6,8 +6,6 @@ _Keep It Simple, Stupid_ - Some guy
 
 _Everything should be made as simple as possible, but no simpler_ - Albert Einstein
 
-Systems work best if they are kept simple. Therefore, simplicity should be a key goal in design, and unnecessary complexity should be avoided.
-
 ## Folder structure
 
 _Organize primarily by what it does, not what it is._
@@ -38,7 +36,7 @@ Consider if your team name really represents a functional area, especially if yo
 - We follow a tiered architecture where the data flows Repo <=> Service <=> Controller <=> View Model / DTO.
 - Consider omitting the Service layer if it only serves as a trivial wrapper around the Repository. This reduces boilerplate and accelerates development. Yes, this means your controller can call a repository directly. Introduce the Service layer later once it becomes necessary.
     - This is controversial. Should we try it and see how it works out?
-- The ViewModel / DTO layer must never be skipped (ie. do not serialize Repository objects directly to the client). This isolates the client from changes to the Repository, and prevents new and potentially sensitive fields from being inadvertently exposed. 
+- The ViewModel / DTO layer must never be skipped (ie. do not serialize Service or Repository objects directly to the client). This isolates the client from changes to the backend, and prevents new and potentially sensitive fields from being inadvertently exposed. 
 
 ## Design
 
@@ -61,7 +59,7 @@ Unnecessary interfaces pollute the codebase and make it more difficult to unders
 ### Dependencies
 
 - Keep each component's dependency count to a reasonable level. The more dependencies, the more difficult the code becomes to change. Let's say... 7?
-- Declare only impure services as dependencies (see above). This helps reduce the dependency count and KISS.
+- Declare only impure services as dependencies (see above). This helps reduce the dependency count, and Keeps It Simple.
 - If a component's dependency count gets out of control this is a good indication that it should be refactored into more narrowly focused responsibilities.
 - Declare a component's dependencies explicitly in its constructor. Don't use property injection. It's super lame.
 - Each injectable component should expose only a [single public constructor](https://www.cuttingedge.it/blogs/steven/pivot/entry.php?id=97). Multiple constructors lead to a fragile design and present maintainability issues.
@@ -243,7 +241,7 @@ public sealed class CustomerRepository : ICustomerRepository
 
 _Fail as quickly and as loudly as possible._
 
-This gives us the greatest chance of knowing about - and therefore fixing - the problem. Don't be tempted to hide exceptions from the user simply to "improve" the UX. This just leads to long-term difficult-to-diagnose inconsistencies and weirdness.
+We can only fix the problems we know about. Therefore, don't be tempted to hide exceptions from the user simply to "improve" the UX. This just leads to long-term difficult-to-diagnose inconsistencies and weirdness.
 
 ### Catching exceptions
 
