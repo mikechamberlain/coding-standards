@@ -1,10 +1,10 @@
 These are the C# coding standards and practices for new (non-legacy) code. This is a living document. Please discuss on #coding-standards and send a pull request if you would like to contribute.
 
-TODO: this is currently a brain dump, and needs to be better organized. 
+## Philosophy: KISS
 
-## Overall philosophy: KISS
+_Keep It Simple, Stupid_ - Some guy
 
-_Keep It Simple, Stupid_
+_Everything should be made as simple as possible, but no simpler_ - Albert Einstein
 
 Systems work best if they are kept simple. Therefore, simplicity should be a key goal in design, and unnecessary complexity should be avoided.
 
@@ -27,31 +27,48 @@ _Organize primarily by what it does, not what it is._
    etc.
 ```
 
-Consider splitting functional areas into subfolders as/when they grow.
+Split functional areas into subfolders as/when they grow.
 
-Consider whether DTO is a better name than ViewModel.
+Consider whether "DTO" is a better name than "ViewModel".
+
+Consider if your team name really represents a functional area, especially if you work in a horizontal.
 
 ## Architecture
 
 - We follow a tiered architecture where the data flows Repo <=> Service <=> Controller <=> View Model / DTO.
-- Consider omitting the Service layer if it only serves as a trivial wrapper around the Repository. This reduces boilerplate and accelerates development. Yes, this means your controller can call a repository directly. Introduce the Service layer at a later date only once it becomes necessary. (This is controversial. Let's try it and see what happens?)
+- Consider omitting the Service layer if it only serves as a trivial wrapper around the Repository. This reduces boilerplate and accelerates development. Yes, this means your controller can call a repository directly. Introduce the Service layer later once it becomes necessary.
+    - This is controversial. Should we try it and see how it works out?
 - The ViewModel / DTO layer must never be skipped (ie. do not serialize Repository objects directly to the client). This isolates the client from changes to the Repository, and prevents new and potentially sensitive fields from being inadvertently exposed. 
 
-## Services, interfaces and dependencies
+## Design
 
-- Only create an interface for your class if at least one of the following is true:
+### Interfaces
+
+- Only create an interface if at least one of the following is true:
   1. Multiple implementations exist in application code.
-  2. The service needs to be mocked for testability.
-- A service only needs to be mocked if it is _impure_, ie:
+  2. The component needs to be mocked for testability.
+
+Unnecessary interfaces pollute the codebase and make it more difficult to understand.
+  
+### Injection and mocking
+
+- A component only needs to be mocked if it is _impure_, ie:
   - it has a side effect such as making an external call (eg. reading from disk, making an HTTP call)
   - it is non-deterministic - that is, it may yield different outputs when called multiple times with the same inputs (eg. `DateTime.Now`).
-- An impure service is a good candidate for dependency injection. This promotes testability and keeps components loosely coupled.
-- A pure service doesn't need to be mocked, swapped out, or injected. Prefer instead to create and access it as a static method.
-- Keep each component's dependency count to a reasonable level.
-  - Declaring only impure services as dependencies helps this.
-  - If a component's dependency count is getting out of control, consider refactoring the component into more narrowly focused responsibilities. 
+- An impure component is a good candidate for dependency injection. This promotes testability and keeps components loosely coupled.
+- A pure component doesn't need to be mocked, swapped out, or injected. Prefer instead to create and access it as a static method, or just `new` it up inline.
 
-Example. Say we have a model that needs to be mapped to a view model:
+### Dependencies
+
+- Keep each component's dependency count to a reasonable level. The more dependencies, the more difficult the code becomes to change. Let's say... 7?
+- Declare only impure services as dependencies (see above). This helps reduce the dependency count and KISS.
+- If a component's dependency count gets out of control this is a good indication that it should be refactored into more narrowly focused responsibilities.
+- Declare a component's dependencies explicitly in its constructor. Don't use property injection. It's super lame.
+- Each injectable component should expose only a [single public constructor](https://www.cuttingedge.it/blogs/steven/pivot/entry.php?id=97). Multiple constructors lead to a fragile design and present maintainability issues.
+
+### Example
+
+Say we have a model that needs to be mapped to a view model:
 
 ```c#
 public class MyModel
@@ -65,7 +82,7 @@ public class MyViewModel
 }
 ```
 
-### Don't
+#### Don't
 
 ```c#
 // so interface, much dependencies...
@@ -106,7 +123,7 @@ public class MyController
     }
 ```
 
-### Do
+#### Do
 
 ```c#
 // KISS
@@ -144,11 +161,13 @@ public class MyController : ApiController
 }
 ```
 
-- Do not depend of framework abstractions (like `HttpContext`). They tie your code to a specific environment / implementation. Instead, wrap in an app specific abstraction.
-- Consider the [Law (Suggestion) of Demeter](https://hackernoon.com/object-oriented-tricks-2-law-of-demeter-4ecc9becad85), that is, avoid long chains of accessors such as `a.b().c.d`. They tightly couple your code to the outside world, making it more difficult to change or test.
+### Abstractions
+
+- Do not depend of framework abstractions (like `HttpContext`). They tie your code to a specific environment / implementation. Instead, wrap in an abstraction suitable for your application.
+- Consider the [Law (Suggestion) of Demeter](https://hackernoon.com/object-oriented-tricks-2-law-of-demeter-4ecc9becad85); that is, avoid long chains of accessors such as `a.b().c.d`. They tightly couple your code to the outside world, making it more difficult to change or test.
 
 
-### Don't
+#### Don't
 
 ```c#
 public sealed class CustomerRepository : ICustomerRepository
@@ -164,7 +183,7 @@ public sealed class CustomerRepository : ICustomerRepository
 
     public void Save(Customer entity)
     {
-        // Not only have we tied ourself to the ASP.NET Core MVC environment,
+        // Not only do we tie ourselves to the ASP.NET Core MVC environment,
         // but our class becomes annoying to test as we have to mock this
         // long chain of objects:
         entity.CreatedBy = this.accessor.HttpContext.User.Identity.Name;
@@ -173,10 +192,10 @@ public sealed class CustomerRepository : ICustomerRepository
 }
 ```
 
-### Do
+#### Do
 
 ```c#
-// Create a non-framework specific abstraction that gives us only what we need.
+// Create a non-framework specific abstraction that gives us *only* what we really need.
 public interface IUserContext
 {
     string Name { get; }
@@ -210,9 +229,9 @@ public sealed class CustomerRepository : ICustomerRepository
 
     public void Save(Customer entity)
     {
-        // Here, we've isolate ourselves from the underlying framework, allowing our
-        // code to also run in a Windows service, a console application, etc.
-        // Further, we've eliminated the trainwreck above, making our class much more
+        // Now, we've isolate ourselves from the underlying framework, allowing our
+        // code to also be run from a Windows service, a console application, etc.
+        // Further, we've eliminated the trainwreck above, so our class becomes much more
         // straightforward to test.
         entity.CreatedBy = userContext.Name;
         uow.Save(entity);
@@ -222,24 +241,49 @@ public sealed class CustomerRepository : ICustomerRepository
 
 ## Errors and exceptions
 
-- Fail as quickly and as loudly as possible. This gives us the greatest chance of becoming aware of the problem or bug, increasing the chance it will be fixed. Do not be tempted to hide exceptions from the user simply to "improve" the UX. This just leads to long-term difficult-to-diagnose inconsistencies and weirdness.
+_Fail as quickly and as loudly as possible._
+
+This gives us the greatest chance of knowing about - and therefore fixing - the problem. Don't be tempted to hide exceptions from the user simply to "improve" the UX. This just leads to long-term difficult-to-diagnose inconsistencies and weirdness.
+
+### Catching exceptions
+
+_Only catch what you can handle._
+
 - Do not _catch_ an exception unless you have a good reason to do so. Such reasons might be:
    - recovering from the error
    - enriching the error message / wrapping the exception
    - retrying the operation
    - logging the error
-- When catching an exception, be as specific as possible to the type of exception you are handling. Avoid catching `System.Exception` if you only plan to handle `System.IO.FileNotFoundException`. 
-- Do not _swallow_ an exception unless you have handled the error and can gracefully continue. The hardest exceptions to troubleshoot are the ones that don't even exist, because someone upstream decided to swallow it.
-- Only swallow an exception if you have taken steps to correct the problem and have brought the system back into a consistent state. For example, if an exception is thrown when writing to a readonly file then you can recover by removing the readonly attribute, swallowing the exception, then retrying.
-- If you cannot recover from an exception, it's totally fine!
+- There should always be a global exception handler that logs any unhandled exceptions and shows a "sorry, something went wrong" message. If all you want to do is log the error, then don't bother - keep your code clean and leave the logging to the global exception handler.
+- When catching an exception, be as specific as possible to the type of exception you are handling. Avoid catching `System.Exception` if you only plan to handle a `System.IO.FileNotFoundException`.
+
+### Consuming exceptions
+
+_Don't. Unless you know what you are doing. But even then, probably don't._
+
+- When you catch an exception but don't rethrow it, you have _consumed_ the exception. As far as the rest of the system is concerned, the exception never happened.
+- To consume an exception implies that you have completely recovered from the error, and the user can continue as if nothing ever happened.
+- Read that last sentence again and consider its implications. It is actually quite rare to be able to gracefully recover from an exception, because the circumstances should be: _exceptional_. In other words, as the programmer, it is unlikely that you can foresee and mitigate every little thing that can possibly go wrong. And this is OK! See _Rethrowing exceptions_ below.
+- Do not consume an exception unless you have actively taken steps to correct the problem and bring the system back into a consistent state. The hardest exceptions to troubleshoot are the ones that don't even exist, because someone upstream consumed it.
+- For example, if an exception is thrown when writing to a readonly file, then you can recover by removing the readonly attribute, consuming the exception, then retrying. In this case, the user doesn't need to know that anything went wrong, because you were able to completely recover from error condition.
+- However, if a service call failed because a backend system was down, then it is very difficult to gracefully recover.
+    - Either: pretend to the user that nothing happened? I guess we could present them with a confusing or inconsistent view, with a bunch of fields blanked out?
+    - Or: is it better to be explicit: "Really sorry, but something went wrong. Please try again later."
+- We admittedly trade off development resources against the likelihood of an error occurring. But, if the system is down for your page, it's also down for the rest of the business.
+    - So CAPI is down for your page. You can't retrieve the user's points balance. But more importantly, we also can't take any bookings AT ALL. To the business, exactly how much effort is it worth your page gracefully handling this case, when we are already dead in the water and losing hella-dollars per minute?
+
+### Rethrowing exceptions
+
+_It's not your problem._
+
+- If you cannot recover from an exception, _it's totally fine_! Exceptions should be, by nature, _exceptional_, so as a programmer you can't be expected to mitigate for every potential corner case. Someone forgot to deploy the config file? The network went down? The datacenter was destroyed by a hurricane? Christopher Hitchens rose again? It's not your problem.
   - Either: don't catch the exception in the first place.
-  - Else: rethrow the exception so it can be handled further up the stack by something that can.
-- There should always be a global exception handler that logs any unhandled exceptions and shows a "sorry, something went wrong" message to the user. If all you want to do is log the error, then don't bother - keep your code clean and leave the logging to the global exception handler.
+  - Else: catch, handle (log?) and _rethrow_.
+  - Finally: give someone further up the call stack with more knowledge the chance to handle it more appropriately.
 - When _rethrowing_ an exception simply `throw;` it. Do not `throw ex;` as this loses the original call stack information, making it look like the exception originated inside your `catch` block.
+- **Note that simply logging an exception does not count as graceful recovery. If in doubt, always rethrow.**
 
-**Note that simply logging the exception does not count as graceful recovery. If in doubt, always rethrow.**
-
-### Don't
+#### Don't
 
 ```c#
 try
@@ -256,7 +300,7 @@ catch (Exception ex)
 
 ```
 
-### Do
+#### Do
 
 ```c#
 try
@@ -288,9 +332,9 @@ Avoid nulls where possible, because they:
 
 Consider using an Option/Maybe type to represent the potential absence of a value. 
 
-[Read more here (seriously, do it!)](https://www.lucidchart.com/techblog/2015/08/31/the-worst-mistake-of-computer-science/).
+[Read more here (seriously, do it!)](https://www.lucidchart.com/techblog/2015/08/31/the-worst-mistake-of-computer-science/)
 
-### Don't
+#### Don't
 
 ```c#
 public List<int> GetPropertyIds(int hostId)
@@ -309,7 +353,7 @@ public List<int> GetPropertyIds(int hostId)
 }
 ```
 
-### Do
+#### Do
 
 ```c#
 public List<int> GetPropertyIds(int hostId)
@@ -321,7 +365,7 @@ public List<int> GetPropertyIds(int hostId)
         // Just return an empty List and everything should just work.
         return Enumerable.Empty<int>().ToList();
         
-        // Even better: fix propertyService.GetProperties() to not return null itself,
+        // EVEN BETTER: fix propertyService.GetProperties() to not return null itself,
         // and this whole block can be removed.
     }
     
@@ -331,12 +375,17 @@ public List<int> GetPropertyIds(int hostId)
 
 ## Parallelism
 
-- Avoid unbounded CPU intensive parallelism on the web cluster.
+### CPU bound
 
-### Don't
+_Avoid unbounded CPU-bound parallelism._
+
+- In fact, avoid parallelism in general unless you know FOR SURE (ie. you have measured) that it will _significantly_ improve performance, _and_ performance is critical.
+- If in doubt, serialize it.
+
+#### Don't
 
 ```c#
-var universe = multiverseService.GetUniverseById(42); // this one is us
+var universe = multiverseService.GetUniverseById(42); // this is ours
 Parallel.ForEach(
     universe.Galaxies, 
     // goodbye web server
@@ -344,7 +393,7 @@ Parallel.ForEach(
 );
 ```
 
-### Do
+#### Do
 
 
 ```c#
@@ -356,9 +405,11 @@ Parallel.ForEach(
 );
 ```
 
+### Asyncronous
+
 - Unbounded parallelism may be desirable for asynchronous IO, where threads are not tied up for lengthy periods:
 
-### Do
+#### Do
 
 ```c#
 var tasks = notificationService
