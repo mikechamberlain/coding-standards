@@ -267,8 +267,8 @@ _Don't. Unless you know what you are doing. But even then, probably don't._
 - However, if a service call failed because a backend system was down, then it is very difficult to gracefully recover.
     - Either: pretend to the user that nothing happened? I guess we could present them with a confusing or inconsistent view, with a bunch of fields blanked out?
     - Or: is it better to be explicit: "Really sorry, but something went wrong. Please try again later."
-- We admittedly trade off development resources against the likelihood of an error occurring. But, if the system is down for your page, it's also down for the rest of the business.
-    - So CAPI is down for your page. You can't retrieve the user's points balance. But more importantly, we also can't take any bookings AT ALL. To the business, exactly how much effort is it worth your page gracefully handling this case, when we are already dead in the water and losing hella-dollars per minute?
+- We admittedly trade off development resources against the likelihood of an error occurring. But, if the system is down for you, it's also down for the rest of the business.
+    - CAPI is down for your page and you can't retrieve the user's points balance. But more importantly, we also can't take any bookings AT ALL. To the business, exactly how much effort is it worth your page gracefully handling this case, when we are already dead in the water and losing hella-dollars per minute?
 
 ### Rethrowing exceptions
 
