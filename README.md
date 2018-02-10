@@ -1,4 +1,4 @@
-These are the C# coding standards and practices for new (non-legacy) code. This is a living document. Please discuss on #coding-standards and send a pull request if you would like to contribute.
+These are the C# coding standards and practices for new (non-legacy) code. This is a living document. Please discuss on #code-quality and send a pull request if you would like to contribute.
 
 ## Philosophy: KISS
 
@@ -25,11 +25,10 @@ _Organize primarily by what it does, not what it is._
    etc.
 ```
 
-Split functional areas into subfolders as/when they grow.
-
-Consider whether "DTO" is a better name than "ViewModel".
-
-Consider if your team name really represents a functional area, especially if you work in a horizontal.
+- Split functional areas into subfolders as/when they grow.
+- Consider whether "DTO" is a better name than "ViewModel".
+- Consider if your team name really represents a functional area, especially if you work in a horizontal.
+- If a component spans functional areas, add it to a `common` folder
 
 ## Architecture
 
