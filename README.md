@@ -414,8 +414,8 @@ var universe = multiverseService.GetUniverseById(42);
 Parallel.ForEach(
     universe.Galaxies, 
     new ParallelOptions { MaxDegreeOfParallelism = 4 }, // cores
-	// the universe may have reached heat-death by the time this completes,
-	// but at least agoda.com is still up
+    // the universe may have reached heat-death by the time this completes,
+    // but at least agoda.com is still up
     galaxy => Console.WriteLine(galaxy.CountParticles())
 );
 ```
