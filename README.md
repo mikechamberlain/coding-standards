@@ -25,10 +25,11 @@ _Organize primarily by what it does, not what it is._
    etc.
 ```
 
-- Split functional areas into subfolders as/when they grow.
-- Consider whether "DTO" is a better name than "ViewModel".
-- Consider if your team name really represents a functional area, especially if you work in a horizontal.
-- If a component spans functional areas, add it to a `common` folder
+Split functional areas into subfolders as/when they grow.
+
+Consider whether "DTO" is a better name than "ViewModel".
+
+Consider if your team name really represents a functional area, especially if you work in a horizontal.
 
 ## Architecture
 
@@ -62,6 +63,8 @@ Unnecessary interfaces pollute the codebase and make it more difficult to unders
 - If a component's dependency count gets out of control this is a good indication that it should be refactored into more narrowly focused responsibilities.
 - Declare a component's dependencies explicitly in its constructor. Don't use property injection. It's super lame.
 - Each injectable component should expose only a [single public constructor](https://www.cuttingedge.it/blogs/steven/pivot/entry.php?id=97). Multiple constructors lead to a fragile design and present maintainability issues.
+- Register dependencies with the container by decorating the class with a suitable attribute. (Done in YCS but not yet implemented in Dictator I believe).
+- **For the love of god do not use `ServiceLocator.Current`.** Inject your dependency through the constructor like a normal person.
 
 ### Example
 
@@ -317,7 +320,7 @@ catch (MyServiceException ex)
 #### Even better
 
 ```c#
-// Leave any exception to the global exception handler.
+// Just leave the logging to the global exception handler.
 return myService.GetData();
 ````
     
@@ -411,6 +414,8 @@ var universe = multiverseService.GetUniverseById(42);
 Parallel.ForEach(
     universe.Galaxies, 
     new ParallelOptions { MaxDegreeOfParallelism = 4 }, // cores
+	// the universe may have reached heat-death by the time this completes,
+	// but at least agoda.com is still up
     galaxy => Console.WriteLine(galaxy.CountParticles())
 );
 ```
@@ -424,6 +429,6 @@ Parallel.ForEach(
 ```c#
 var tasks = notificationService
     .GetPendingNotifications()
-    .Select(async n => await notificationService.SendNotification(n));
+    .Select(n => notificationService.SendNotification(n));
 await Task.WhenAll(tasks);
 ```
