@@ -415,7 +415,7 @@ Parallel.ForEach(
     universe.Galaxies, 
     new ParallelOptions { MaxDegreeOfParallelism = 4 }, // cores
     // the universe may have reached heat-death by the time this completes,
-    // but at least agoda.com is still up
+    // but at least agoda.com will still be up
     galaxy => Console.WriteLine(galaxy.CountParticles())
 );
 ```
