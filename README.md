@@ -50,11 +50,13 @@ Unnecessary interfaces pollute the codebase and make it more difficult to unders
   
 ### Injection and mocking
 
-- A component only needs to be mocked if it is _impure_, ie:
-  - it has a side effect such as making an external call (eg. reading from disk, making an HTTP call)
-  - it is non-deterministic - that is, it may yield different outputs when called multiple times with the same inputs (eg. `DateTime.Now`).
-- An impure component is a good candidate for dependency injection. This promotes testability and keeps components loosely coupled.
-- A pure component doesn't need to be mocked, swapped out, or injected. Prefer instead to create and access it as a static method, or just `new` it up inline.
+- A component only needs to be mocked if:
+  1. it is _impure_, ie:
+    - it has a side effect such as making an external call (eg. reading from disk, making an HTTP call)
+    - it is non-deterministic - that is, it may yield different outputs when called multiple times with the same inputs (eg. `DateTime.Now`).
+  2. it is responsible for creating a component described by 1 (eg. a factory).
+- An impure/non-deterministic component is a good candidate for dependency injection. This promotes testability and keeps components loosely coupled.
+- A pure/deterministic component or function operates in-memory and doesn't depend on external resources such as network calls, reading from hard disk etc. It therefore doesn't need to be mocked, swapped out, or injected. Prefer instead to create and access them as a static method, or just `new` up your class inline.
 
 ### Dependencies
 
